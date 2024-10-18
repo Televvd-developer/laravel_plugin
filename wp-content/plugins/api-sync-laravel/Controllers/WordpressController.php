@@ -6,7 +6,12 @@ if (!defined('ABSPATH')) {
 
 class WordpressController
 {
-  private $apiUrl = 'http://localhost:8000/api/';
+  private $apiUrl;
+
+  public function __construct()
+  {
+    $this->apiUrl = get_option('wpapi_api_url');
+  }
 
   public function createWordpressUser($user_id)
   {
