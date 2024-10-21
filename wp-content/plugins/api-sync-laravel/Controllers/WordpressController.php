@@ -8,6 +8,7 @@ class WordpressController
 {
   private $apiUrl;
   private $deletingUser = false;
+  private $logDir = WP_CONTENT_DIR . '/logs/';
 
   public function __construct()
   {
@@ -16,8 +17,21 @@ class WordpressController
 
   public function createWordpressUser($user_id)
   {
+    $logFile = $this->logDir . 'create_user.log';
+
+    function log_message($message, $logFile)
+    {
+      $timestamps = date('Y-m-d H:i:s');
+      file_put_contents($logFile, "[$timestamps] $message" . PHP_EOL, FILE_APPEND);
+    }
+
     try {
       $user_info = get_userdata($user_id);
+      log_message("Iniciando creacion de usuario: " . $user_id, $logFile);
+
+      if (!$user_info) {
+        throw new Exception("El usuario no existe", 404);
+      }
 
       $data = [
         'name' => $user_info->display_name,
@@ -32,6 +46,7 @@ class WordpressController
         if (empty($value)) {
           throw new Exception("El campo {$key} esta vacio o no se ha recibido", 400);
         }
+        log_message("Campo {$key} recibido: " . $value, $logFile);
       }
 
       $response_laravel = wp_remote_post($this->apiUrl . 'newIspUserWordpress', [
@@ -43,6 +58,8 @@ class WordpressController
         ],
         'timeout' => 45
       ]);
+
+      log_message("Response de laravel ". json_encode($response_laravel), $logFile);
 
       if (is_wp_error($response_laravel)) {
         throw new Exception('Error al enviar el usuario a la API: ' . $response_laravel->get_error_message(), 400);
@@ -56,10 +73,13 @@ class WordpressController
       }
 
       $successMessage = isset($responseData[1]) ? $responseData[1] : 'Usuario registrado correctamente en la API.';
+      log_message("Response de la API: " . json_encode($responseData), $logFile);
 
       wp_redirect(admin_url('users.php?message=success&text=' . urlencode($successMessage)));
       exit;
     } catch (Exception $e) {
+      log_message("Error " . $e->getMessage(), $logFile);
+
       error_log($e->getMessage());
       wp_die($e->getMessage(), 'Api Error', ['response' => $e->getCode()]);
       exit;
@@ -162,10 +182,8 @@ class WordpressController
     } catch (Exception $e) {
       error_log($e->getMessage());
       wp_die($e->getMessage(), 'Api Error', ['response' => $e->getCode()]);
-      
     } finally {
       $this->deletingUser = false;
-      
     }
   }
 }

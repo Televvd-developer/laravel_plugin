@@ -3,7 +3,7 @@
 /**
  * Plugin name: WP Laravel API Sync Users
  * Description: Sincronizacion de los datos de usuarios del WordPress a Laravel API
- * Version: 1.0
+ * Version: 1.1.2
  * Author: Nicolas Cuadros <ncuadros@televvd.com>
  */
 
